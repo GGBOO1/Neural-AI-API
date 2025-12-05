@@ -1,0 +1,136 @@
+Neural AI API Documentation (Garry’s Mod)
+A standardized interface for creating and controlling neural-network-driven AI NPCs in Garry’s Mod.
+
+1. Overview
+
+The Neural AI API provides a robust set of functions to create, manage, and extend AI NPCs powered by neural networks. With this API, you can:
+Spawn and manage neural AI NPCs
+Dynamically adjust behavior and learning parameters
+Access a shared knowledge base across NPCs
+Respond to key events (e.g., spawn, decision, damage)
+Key Features
+Modular design: Clean, intuitive function organization
+Runtime control: Modify AI behavior during gameplay
+Hook system: React to internal events with custom logic
+Backward compatibility: Designed for stable future updates
+
+2. Installation & Initialization
+Requirements
+Latest version of Garry’s Mod
+Neural AI addon properly installed
+Loading
+The API loads automatically at game startup. No require() or manual inclusion is needed—use it directly in your Lua scripts.
+Verify Availability
+lua
+if NeuralAI and NeuralAI.API then
+print("Neural AI API loaded. Version:", NeuralAI.API.GetVersion())
+else
+ErrorNoHalt("Neural AI API not found\n")
+end
+
+3. Quick Start
+Spawn a Neural NPC
+lua
+local npc = NeuralAI.API.SpawnNeuralNPC("npc_combine_soldier", Vector(0, 0, 0), Angle(0, 0, 0))
+if npc then
+NeuralAI.API.SetBehavior(npc, "patrol")
+end
+Listen to Events (e.g., NPC Spawn)
+lua
+NeuralAI.API.RegisterHook("OnNeuralNPCSpawned", "MyMod_Spawn", function(npc)
+NeuralAI.API.SetLearningRate(npc, 0.05)
+end)
+
+4. API Reference
+4.1 NPC Management
+Function Description
+-------- -------------
+GetAllNeuralNPCs() Returns all active neural NPCs (table)
+SpawnNeuralNPC(class, pos, ang[, data]) Spawns a new neural NPC; data may include initial behavior, learning rate, etc.
+IsNeuralAI(entity) Checks if an entity is a neural AI NPC (boolean)
+4.2 Neural Network Control
+Function Description
+-------- -------------
+GetNeuralNetwork(npc) Returns the NPC’s neural network structure (table)
+SetNeuralNetwork(npc, network) Replaces the NPC’s neural network
+TrainNeuralNetwork(npc, inputs, targets) Performs one training step; returns error (number)
+4.3 Behavior Control
+Function Description
+-------- -------------
+SetBehavior(npc, name[, data]) Sets behavior mode (e.g., "patrol", "follow")
+GetCurrentBehavior(npc) Returns current behavior name and params (string, table)
+GetBehaviorTarget(npc) Gets the target entity of the current behavior (if any)
+4.4 Learning Parameters
+Function Description
+-------- -------------
+SetLearningEnabled(npc, bool) Enables/disables online learning
+SetLearningRate(npc, rate) Sets learning rate (recommended: 0.001–0.1)
+4.5 Global Knowledge (Shared Across NPCs)
+Function Description
+-------- -------------
+GetGlobalKnowledge(key) Reads shared data
+AddToGlobalKnowledge(key, value) Writes or updates shared data
+4.6 Configuration
+Function Description
+-------- -------------
+GetConfig(key) Retrieves a plugin configuration value
+SetConfig(key, value) Updates a runtime configuration value
+
+5. Hook System
+
+Register callbacks to respond to internal events.
+Register / Unregister
+lua
+NeuralAI.API.RegisterHook("HookName", "YourModID", callback)
+NeuralAI.API.UnregisterHook("HookName", "YourModID")
+Common Hooks
+Hook Trigger Parameters
+------ -------- -----------
+OnNeuralNPCSpawned After NPC spawns npc
+OnNeuralNPCDecision When NPC makes a decision npc, decision, data
+OnNeuralNPCTakeDamage When NPC takes damage npc, CTakeDamageInfo
+OnNeuralNPCTrain After a training step npc, error, inputs, targets
+
+6. Advanced Examples
+Custom Behavior
+lua
+local function RetreatIfTooClose(npc)
+local target = NeuralAI.API.GetBehaviorTarget(npc)
+if not (target and target:IsValid()) then return end
+
+local dist = npc:GetPos():Distance(target:GetPos())
+if dist < 50 then
+local retreat = npc:GetPos() - (target:GetPos() - npc:GetPos()):GetNormalized() 30
+npc:MoveToPos(retreat)
+end
+end
+
+NeuralAI.API.SetBehavior(npc, "custom", { behavior_function = RetreatIfTooClose })
+Batch Control
+lua
+for _, npc in ipairs(NeuralAI.API.GetAllNeuralNPCs()) do
+if npc:IsValid() then
+NeuralAI.API.SetBehavior(npc, "patrol")
+NeuralAI.API.SetLearningEnabled(npc, false)
+end
+end
+Client-side HUD rendering and other advanced integrations follow standard GMod practices—see full examples in the extended guide.*
+
+7. Best Practices
+Naming: Use unique prefixes for hook identifiers (e.g., "MyMod_")
+Safety: Always validate entities with npc:IsValid() and IsNeuralAI(npc)
+Performance: Avoid heavy logic in high-frequency hooks; disable learning when not needed
+Compatibility: Check GetVersion() to handle API changes gracefully
+
+8. Troubleshooting
+
+Issue Solution
+------ --------
+NeuralAI.API is nil Ensure the addon is installed and enabled
+SpawnNeuralNPC returns nil Verify class name and spawn position validity
+Hooks not firing Check hook name spelling, identifier uniqueness, and NPC type
+Performance lag Reduce active NPCs; disable learning; optimize custom logic
+
+9. Sample Project (Excerpt)
+
+Team Controller: Coordinate multiple NPCs as a unit (full implementation available in the extended examples).
