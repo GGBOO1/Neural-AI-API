@@ -1,0 +1,137 @@
+Neural AI API 文档（Garry’s Mod）
+适用于 Garry's Mod 的神经网络 NPC 控制接口
+
+1. 概述
+
+Neural AI API 为 Garry's Mod 提供一套标准化接口，用于创建、控制和扩展具备神经网络能力的 AI NPC。通过该 API，您可以：
+创建与管理神经网络 NPC
+动态调整行为策略与学习参数
+访问共享知识库
+响应关键事件（如生成、决策、受伤等）
+核心特性
+模块化设计：功能解耦，易于集成
+运行时控制：支持游戏过程中动态修改 AI 行为
+钩子系统：灵活响应各类事件
+向后兼容：保障未来版本升级的稳定性
+
+2. 安装与初始化
+前置条件
+Garry's Mod 最新版
+已安装 Neural AI 插件
+加载方式
+API 在游戏启动时自动加载。无需 require 或额外引入，可直接在 Lua 脚本中调用。
+验证可用性
+lua
+if NeuralAI and NeuralAI.API then
+print("Neural AI API 版本:", NeuralAI.API.GetVersion())
+else
+ErrorNoHalt("Neural AI API 未加载\n")
+end
+
+3. 快速入门
+创建一个神经网络 NPC
+lua
+local npc = NeuralAI.API.SpawnNeuralNPC("npc_combine_soldier", Vector(0, 0, 0), Angle(0, 0, 0))
+if npc then
+NeuralAI.API.SetBehavior(npc, "patrol")
+end
+监听事件（例如 NPC 生成）
+lua
+NeuralAI.API.RegisterHook("OnNeuralNPCSpawned", "MyMod_Spawn", function(npc)
+NeuralAI.API.SetLearningRate(npc, 0.05)
+end)
+
+4. API 参考
+4.1 NPC 管理
+函数 说明
+------ ------
+GetAllNeuralNPCs() 返回所有活跃的神经网络 NPC（table）
+SpawnNeuralNPC(class, pos, ang[, data]) 生成新 NPC；data 可含初始行为、学习率等
+IsNeuralAI(entity) 判断实体是否为神经网络 NPC（boolean）
+4.2 神经网络操作
+函数 说明
+------ ------
+GetNeuralNetwork(npc) 获取 NPC 的神经网络结构（table）
+SetNeuralNetwork(npc, network) 替换 NPC 的神经网络
+TrainNeuralNetwork(npc, inputs, targets) 执行单次训练，返回误差值（number）
+4.3 行为控制
+函数 说明
+------ ------
+SetBehavior(npc, name[, data]) 设置行为模式（如 "patrol", "follow"）
+GetCurrentBehavior(npc) 返回当前行为名及参数（string, table）
+GetBehaviorTarget(npc) 获取当前行为的目标实体（若存在）
+4.4 学习参数
+函数 说明
+------ ------
+SetLearningEnabled(npc, bool) 启用/禁用在线学习
+SetLearningRate(npc, rate) 设置学习率（建议范围：0.001–0.1）
+4.5 全局知识库（跨 NPC 共享）
+函数 说明
+------ ------
+GetGlobalKnowledge(key) 读取全局数据
+AddToGlobalKnowledge(key, value) 写入或更新全局数据
+4.6 配置管理
+函数 说明
+------ ------
+GetConfig(key) 读取插件配置项
+SetConfig(key, value) 修改运行时配置
+
+5. 钩子系统
+
+通过注册钩子响应关键事件。
+注册 / 注销
+lua
+NeuralAI.API.RegisterHook("HookName", "YourModID", callback)
+NeuralAI.API.UnregisterHook("HookName", "YourModID")
+常用钩子
+钩子 触发时机 参数
+------ -------- ------
+OnNeuralNPCSpawned NPC 生成后 npc
+OnNeuralNPCDecision NPC 做出决策 npc, decision, data
+OnNeuralNPCTakeDamage NPC 受伤 npc, CTakeDamageInfo
+OnNeuralNPCTrain 完成一次训练 npc, error, inputs, targets
+
+6. 高级用法示例
+自定义行为
+lua
+local function RetreatIfTooClose(npc)
+local target = NeuralAI.API.GetBehaviorTarget(npc)
+if not (target and target:IsValid()) then return end
+
+local dist = npc:GetPos():Distance(target:GetPos())
+if dist < 50 then
+local retreat = npc:GetPos() - (target:GetPos() - npc:GetPos()):GetNormalized() * 30
+npc:MoveToPos(retreat)
+end
+end
+
+NeuralAI.API.SetBehavior(npc, "custom", { behavior_function = RetreatIfTooClose })
+批量控制
+lua
+for _, npc in ipairs(NeuralAI.API.GetAllNeuralNPCs()) do
+if npc:IsValid() then
+NeuralAI.API.SetBehavior(npc, "patrol")
+NeuralAI.API.SetLearningEnabled(npc, false)
+end
+end
+客户端 HUD 显示
+可在 HUDPaint 中调用 GetAllNeuralNPCs() 并绘制状态（见原稿示例，此处略以保持简洁）。
+
+7. 最佳实践
+命名规范：钩子标识符使用唯一前缀（如 "MyMod_"）
+健壮性：始终检查 npc:IsValid() 和 IsNeuralAI(npc)
+性能：避免高频钩子中执行复杂逻辑；非必要时关闭学习
+兼容性：通过 GetVersion() 适配不同 API 版本
+
+8. 常见问题
+
+问题 解决方案
+------ --------
+NeuralAI.API 为 nil 检查插件是否正确安装并启用
+SpawnNeuralNPC 返回 nil 确认类名有效、位置合法
+钩子未触发 检查钩子名称拼写、标识符唯一性、NPC 类型
+游戏卡顿 减少活跃 NPC 数量，关闭不必要的学习
+
+9. 示例项目（节选）
+
+团队控制器：统一管理多个 NPC 行为（完整代码见原文第 9 节）。
